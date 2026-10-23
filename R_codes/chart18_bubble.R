@@ -16,7 +16,16 @@ chart18 <- ggplot(
   mapping = aes(
     x = median_household_income,
     y = `Adoption Rate`,
-    size = charging_stations
+    size = charging_stations,
+    text = paste0(
+      "<b>", County, " County</b>",
+      "<br>Median Household Income of <b>",
+      scales::dollar(median_household_income), "</b>",
+      "<br>EV Adoption Rate of <b>",
+      scales::percent(`Adoption Rate`, accuracy = 0.1), "</b>",
+      "<br>No. of Charging Stations: <b>",
+      scales::comma(charging_stations), "</b>"
+    )
   )
 ) + 
   geom_point(

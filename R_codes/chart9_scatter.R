@@ -11,9 +11,11 @@ chart9 <- ggplot(
     x = charging_ports,
     y = `Adoption Rate`,
     text = paste0(
-      County, " County",
-      "<br>No. of Charging Ports: ", scales::comma(charging_ports),
-      "<br>EV Adoption Rate of ", scales::percent(`Adoption Rate`, accuracy = 0.1)
+      "<b>", County, " County</b>",
+      "<br>No. of Charging Ports: <b>",
+      scales::comma(charging_ports), "</b>",
+      "<br>EV Adoption Rate: <b>",
+      scales::percent(`Adoption Rate`, accuracy = 0.1), "</b>"
     )
   )
 ) +
