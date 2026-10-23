@@ -33,7 +33,7 @@ chart9 <- ggplot(
   ) +
   ev_theme()
 
-chart9
+## chart9
 
 # Optional interactive version
 chart9_interactive <- plotly::ggplotly(
@@ -41,4 +41,4 @@ chart9_interactive <- plotly::ggplotly(
   tooltip = "text"
 )
 
-chart9_interactive
+## chart9_interactive
