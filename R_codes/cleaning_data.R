@@ -3,6 +3,7 @@ library(readr)
 library(dplyr)
 library(sf)
 library(tigris)
+library(tidycensus)
 
 # DFW Clean Cities Data
 data_ev_registration <- "data/ev_registration_report_20260101.xlsx"
@@ -125,3 +126,25 @@ dfw_ev_ports_counts <- dfw_ev_stations %>%
     .groups = "drop"
   ) %>%
   arrange(desc(charging_ports))
+
+#=======================================================================
+
+# ACS Data
+dfw_counties_income <- tidycensus::get_acs(
+  geography = "county",
+  variables = "B19013_001",
+  state = "TX",
+  year = 2024,
+  survey = "acs5"
+  ) %>%
+  mutate(
+    County = sub(" County, Texas$", "", NAME)
+  ) %>%
+  filter(
+    County %in% dfw_counties
+  ) %>%
+  transmute(
+    County,
+    median_household_income = estimate,
+    income_moe = moe
+  )
