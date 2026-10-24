@@ -1,0 +1,192 @@
+---
+title: "EPPS 6356 Assignment 7: 48-Hour Chart Hackathon"
+subtitle: "Electric Vehicle Adoption and Charging Infrastructure in the Dallas–Fort Worth Region"
+
+author:
+  - name: Rose Mikame
+  - name: Susan Mohammad
+  - name: Chakrayuddh Kimsovanna
+
+date: "October 23, 2026"
+
+format:
+  html:
+    toc: true
+    toc-title: "Contents"
+    page-layout: full
+
+    include-in-header:
+      text: |
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Quattrocento:wght@400;700&display=swap');
+
+          body, h1, h2, h3, h4, h5, h6 {
+            font-family: 'Quattrocento', serif !important;
+          }
+
+          .atlas-button {
+            display: inline-block;
+            background-color: rebeccapurple;
+            color: white !important;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 15px;
+          }
+
+          .atlas-button:hover {
+            background-color: indigo;
+            color: white !important;
+            text-decoration: none;
+          }
+        </style>
+
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+## Overview
+
+For this Hackathon project, we decided to look into electric vehicle adoption and public charging infrastructure across all the 16 counties in the DFW region (as designated by the NCTCOG). Data sources are provided by DFW Clean Cities, Alternative Fuels Data Center (AFDC), and the Census Bureau. Posit Connect Cloud was used to properly implement the Shiny application because running it via Quarto did not work as intended.
+
+## Interactive Dashboard
+
+Below is the link to the interactive dashboard:
+
+<a class="atlas-button"
+   href="https://cykimsovanna-dfw-ev-atlas.share.connect.posit.cloud"
+   target="_blank"
+   rel="noopener noreferrer">
+   Launch the DFW EV Atlas ↗
+</a>
+
+## R Codes
+
+#### Data Cleaning
+
+<details>
+<summary>Show R code</summary>
+
+```{r}
+#| results: asis
+
+code <- readLines("R_codes/cleaning_data.R")
+
+cat(
+  "```r\n",
+  paste(code, collapse = "\n"),
+  "\n```\n",
+  sep = ""
+)
+```
+
+</details>
+
+#### Theme Settings
+
+<details>
+<summary>Show R code</summary>
+
+```{r}
+#| results: asis
+
+code <- readLines("R_codes/theme_settings.R")
+
+cat(
+  "```r\n",
+  paste(code, collapse = "\n"),
+  "\n```\n",
+  sep = ""
+)
+```
+
+</details>
+
+#### Chart 9: EV Adoption Rates vs. EV Charging Availability
+
+<details>
+<summary>Show R code</summary>
+
+```{r}
+#| results: asis
+
+code <- readLines("R_codes/chart9_scatter.R")
+
+cat(
+  "```r\n",
+  paste(code, collapse = "\n"),
+  "\n```\n",
+  sep = ""
+)
+```
+
+</details>
+
+#### Chart 18: EV Adoption Rates vs. Median Household Income
+
+<details>
+<summary>Show R code</summary>
+
+```{r}
+#| results: asis
+
+code <- readLines("R_codes/chart18_bubble.R")
+
+cat(
+  "```r\n",
+  paste(code, collapse = "\n"),
+  "\n```\n",
+  sep = ""
+)
+```
+
+</details>
+
+#### Chart 5: EV Adoption and Charging Infrastructure
+
+<details>
+<summary>Show R code</summary>
+
+```{r}
+#| results: asis
+
+code <- readLines("R_codes/chart5_circular_area.R")
+
+cat(
+  "```r\n",
+  paste(code, collapse = "\n"),
+  "\n```\n",
+  sep = ""
+)
+```
+
+</details>
+
+#### Shiny Dashboard Application
+
+<details>
+<summary>Show app.R code</summary>
+
+```{r}
+#| results: asis
+
+code <- readLines("app.R")
+
+cat(
+  "```r\n",
+  paste(code, collapse = "\n"),
+  "\n```\n",
+  sep = ""
+)
+```
+
+</details>
+
+## Project Files and Source Code
+
+[Here](https://github.com/cykimsovanna/epps6356-assignment7-hackathon) is the project repository, which contains the R codes, datasets used and other supporting files.
+
