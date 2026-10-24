@@ -78,23 +78,7 @@ ui <- fluidPage(
 
     titlePanel("DFW Electric Vehicle Dashboard"),
     sidebarLayout(
-        sidebarPanel(
-      selectInput(
-        inputId = "county_filter",
-        label = "Select Counties:",
-        choices = dfw_counties,
-        selected = dfw_counties,
-        multiple = TRUE
-      ),
-      sliderInput(
-        inputId = "income_filter",
-        label = "Median Household Income:",
-        min = min(dashboard_data$median_household_income),
-        max = max(dashboard_data$median_household_income),
-        value = range(dashboard_data$median_household_income),
-        step = 1000
-      )
-    ),
+      sidebarPanel(),
   
   mainPanel(
     tabsetPanel(
@@ -152,6 +136,48 @@ ui <- fluidPage(
       ) # closes tabsetPanel()
     ) # closes mainPanel()
   ), # closes sidebarLayout()
+  div(
+    style = "max-width: 1100px; margin: 20px auto; padding: 15px 20px; background: #f7f7f7; border-radius: 8px;",
+    
+    h4("Explore Charts 9 and 18"),
+    
+    fluidRow(
+      column(
+        6,
+        selectizeInput(
+          inputId = "county_filter",
+          label = "Select Counties:",
+          choices = sort(unique(dashboard_data$County)),
+          selected = character(0),
+          multiple = TRUE,
+          options = list(
+            plugins = list("remove_button")
+          ),
+          width = "100%"
+        ),
+        actionLink(
+          inputId = "reset_counties",
+          label = "All Counties"
+        )
+      ),
+      
+      column(
+        6,
+        sliderInput(
+          inputId = "income_filter",
+          label = "Median Household Income (USD):",
+          min = 60000,
+          max = 130000,
+          value = c(60000, 130000),
+          step = 5000,
+          pre = "$",
+          sep = ",",
+          ticks = FALSE,
+          width = "100%"
+        )
+      )
+    )
+  ),
   hr(),
   h3(
     "Statistics on EV Registrations & Public Charging Infrastructure Across DFW Counties",
@@ -165,8 +191,31 @@ ui <- fluidPage(
 
 # Server
 server <- function(input, output, session) {
+  observeEvent(input$reset_counties, {
+    updateSelectizeInput(
+      session,
+      "county_filter",
+      selected = character(0)
+    )
+    updateSliderInput(
+      session,
+      "income_filter",
+      value = c(60000, 130000)
+    )
+  })
   filtered_data <- reactive({
-    dashboard_data
+    req(input$income_filter)
+    data <- dashboard_data
+    if (length(input$county_filter) > 0) {
+      data <- data %>%
+        filter(County %in% input$county_filter)
+    }
+    data <- data %>%
+      filter(
+        median_household_income >= input$income_filter[1],
+        median_household_income <= input$income_filter[2]
+      )
+    data
   })
   
   # Chart 9
