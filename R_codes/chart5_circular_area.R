@@ -1,11 +1,4 @@
 # ============================================================
-# EPPS 6356 - HACKATHON 2.0
-# EV Adoption and Charging Infrastructure Across 16 DFW Counties
-# Circular Bar Chart - Final Layout
-# ============================================================
-
-
-# ============================================================
 # 1. LOAD LIBRARIES
 # ============================================================
 
@@ -19,139 +12,37 @@ library(tigris)
 library(scales)
 library(patchwork)
 
-# Load the team's existing theme
+# ============================================================
+# 2. LOAD SHARED DATA AND THEME
+# ============================================================
+
 source("R_codes/theme_settings.R")
-
-
-# ============================================================
-# 2. DEFINE DFW COUNTIES
-# ============================================================
-
-dfw_counties <- c(
-  "Collin", "Dallas", "Denton", "Ellis",
-  "Erath", "Hood", "Hunt", "Johnson",
-  "Kaufman", "Navarro", "Palo Pinto", "Parker",
-  "Rockwall", "Somervell", "Tarrant", "Wise"
-)
-
+source("R_codes/cleaning_data.R")
 
 # ============================================================
-# 3. LOAD EV REGISTRATION DATA
-# ============================================================
-
-ev_raw <- read_excel(
-  "data/ev_registration_report_20260101.xlsx",
-  sheet = "County - Adoption"
-)
-
-print(names(ev_raw))
-
-dfw_county_adoption <- ev_raw %>%
-  filter(County %in% dfw_counties) %>%
-  transmute(
-    County,
-    ev_registrations = as.numeric(`Electric Vehicles`),
-    ev_adoption_rate = as.numeric(`Adoption Rate`) * 100
-  )
-
-
-# ============================================================
-# 4. LOAD CHARGING STATION DATA
-# ============================================================
-
-stations_raw <- read_csv(
-  "data/electric_fuel_stations_historical_day_20260101.csv",
-  col_types = cols(.default = col_character())
-)
-
-stations_clean <- stations_raw %>%
-  filter(`Fuel Type Code` == "ELEC") %>%
-  mutate(
-    Latitude = as.numeric(Latitude),
-    Longitude = as.numeric(Longitude)
-  ) %>%
-  filter(
-    !is.na(Latitude),
-    !is.na(Longitude)
-  )
-
-
-# ============================================================
-# 5. GET COUNTY BOUNDARIES
-# ============================================================
-
-dfw_counties_borders <- tigris::counties(
-  state = "TX",
-  year = 2025,
-  cb = TRUE
-) %>%
-  filter(NAME %in% dfw_counties) %>%
-  st_transform(4326) %>%
-  select(County = NAME)
-
-
-# ============================================================
-# 6. ASSIGN STATIONS TO COUNTIES
-# ============================================================
-
-dfw_ev_stations <- st_as_sf(
-  stations_clean,
-  coords = c("Longitude", "Latitude"),
-  crs = 4326,
-  remove = FALSE
-) %>%
-  st_join(
-    dfw_counties_borders,
-    join = st_within
-  ) %>%
-  filter(!is.na(County))
-
-
-# ============================================================
-# 7. COUNT CHARGING STATIONS AND PORTS
-# ============================================================
-
-dfw_charging_counts <- dfw_ev_stations %>%
-  st_drop_geometry() %>%
-  mutate(
-    level1_ports = as.numeric(`EV Level1 EVSE Num`),
-    level2_ports = as.numeric(`EV Level2 EVSE Num`),
-    dc_fast_ports = as.numeric(`EV DC Fast Count`)
-  ) %>%
-  group_by(County) %>%
-  summarise(
-    charging_stations = n_distinct(ID),
-    
-    charging_ports = sum(
-      coalesce(level1_ports, 0) +
-        coalesce(level2_ports, 0) +
-        coalesce(dc_fast_ports, 0)
-    ),
-    
-    .groups = "drop"
-  )
-
-
-# ============================================================
-# 8. COMBINE ALL FOUR MEASUREMENTS
+# 3. PREPARE COUNTY-LEVEL METRICS
 # ============================================================
 
 county_metrics <- dfw_county_adoption %>%
   left_join(
-    dfw_charging_counts,
+    dfw_ev_stations_counts,
     by = "County"
   ) %>%
-  mutate(
+  left_join(
+    dfw_ev_ports_counts,
+    by = "County"
+  ) %>%
+  transmute(
+    County,
+    ev_registrations = `Electric Vehicles`,
     charging_stations = coalesce(charging_stations, 0L),
-    charging_ports = coalesce(charging_ports, 0)
+    charging_ports = coalesce(charging_ports, 0),
+    ev_adoption_rate = `Adoption Rate` * 100
   ) %>%
   arrange(County)
 
-print(county_metrics)
-
-
 # ============================================================
-# 9. RESHAPE DATA
+# 4. RESHAPE DATA
 # ============================================================
 
 chart_actual <- county_metrics %>%
@@ -175,9 +66,8 @@ chart_actual <- county_metrics %>%
     )
   )
 
-
 # ============================================================
-# 10. NORMALIZE VALUES TO 0-100
+# 5. NORMALIZE VALUES TO 0–100
 # ============================================================
 
 chart_data <- chart_actual %>%
@@ -197,7 +87,7 @@ chart_data <- chart_actual %>%
 
 
 # ============================================================
-# 11. PREPARE CIRCULAR BAR POSITIONS
+# 6. PREPARE CIRCULAR BAR POSITIONS
 # ============================================================
 
 county_order <- dfw_counties
@@ -239,19 +129,19 @@ inner_radius <- 30
 
 
 # ============================================================
-# 12. DEFINE PURPLE COLOR PALETTE
+# 7. DEFINE PURPLE COLOR PALETTE
 # ============================================================
 
 metric_colors <- c(
   "EV Registrations" = "purple4",
   "Charging Stations" = "darkorchid3",
   "Charging Ports" = "violet",
-  "EV Adoption Rate (%)" = "#B57EDC"
+  "EV Adoption Rate (%)" = "thistle2"
 )
 
 
 # ============================================================
-# 13. COUNTY LABEL POSITIONS
+# 8. CALCULATE COUNTY LABEL POSITIONS
 # ============================================================
 
 county_labels <- chart_data %>%
@@ -273,9 +163,17 @@ county_labels <- chart_data %>%
     )
   )
 
+sector_width <- bars_per_county + gap_size
+
+county_dividers <- data.frame(
+  boundary = (seq_along(county_order) - 1) *
+    sector_width +
+    bars_per_county +
+    gap_size / 2 + 0.5
+)
 
 # ============================================================
-# 14A. CREATE CIRCULAR CHART - RIGHT SIDE
+# 9A. CREATE CIRCULAR CHART - RIGHT SIDE
 # ============================================================
 
 circular_plot <- ggplot(
@@ -286,6 +184,19 @@ circular_plot <- ggplot(
     fill = metric
   )
 ) +
+  
+  geom_segment(
+    data = county_dividers,
+    aes(
+      x = boundary,
+      xend = boundary,
+      y = 0,
+      yend = 110
+    ),
+    inherit.aes = FALSE,
+    color = "grey92",
+    linewidth = 0.3
+  ) +
   
   geom_col(
     width = 0.92,
@@ -373,7 +284,7 @@ circular_plot <- ggplot(
 
 
 # ============================================================
-# 14B. CREATE TEXT PANEL - LEFT SIDE
+# 9B. CREATE TEXT PANEL - LEFT SIDE
 # ============================================================
 
 legend_data <- data.frame(
@@ -381,7 +292,7 @@ legend_data <- data.frame(
     names(metric_colors),
     levels = names(metric_colors)
   ),
-  y = c(0.22, 0.17, 0.12, 0.07)
+  y = c(0.26, 0.21, 0.16, 0.11)
 )
 
 text_panel <- ggplot() +
@@ -399,11 +310,11 @@ text_panel <- ggplot() +
     ),
     hjust = 0,
     vjust = 1,
-    size = 3.7,
+    size = 5.5,
     fontface = "bold",
     family = ev_font,
     color = "grey15",
-    lineheight = 1.15
+    lineheight = 1.05
   ) +
   
   # UPDATED DATE AND NORMALIZATION
@@ -412,13 +323,13 @@ text_panel <- ggplot() +
     x = 0.02,
     y = 0.66,
     label = paste(
-      "Data Year: January 1, 2026",
+      "Date: January 1, 2026",
       "Normalized to a 0–100 scale",
       sep = "\n"
     ),
     hjust = 0,
     vjust = 1,
-    size = 3.1,
+    size = 4.6,
     family = ev_font,
     color = "grey40",
     lineheight = 1.5
@@ -429,10 +340,10 @@ text_panel <- ggplot() +
     "text",
     x = 0.02,
     y = 0.32,
-    label = "MEASUREMENTS",
+    label = "Metrics",
     hjust = 0,
     vjust = 1,
-    size = 3.4,
+    size = 4.8,
     fontface = "bold",
     family = ev_font,
     color = "grey15"
@@ -459,7 +370,7 @@ text_panel <- ggplot() +
       label = metric
     ),
     hjust = 0,
-    size = 3.0,
+    size = 4.3,
     family = ev_font,
     color = "grey25"
   ) +
@@ -495,7 +406,7 @@ text_panel <- ggplot() +
 
 
 # ============================================================
-# 14C. COMBINE LEFT PANEL + RIGHT CIRCULAR CHART
+# 9C. COMBINE TEXT PANEL AND CIRCULAR CHART
 # ============================================================
 
 circular_area_chart <- (
@@ -503,7 +414,7 @@ circular_area_chart <- (
 ) +
   
   plot_layout(
-    widths = c(1.05, 1.95)
+    widths = c(0.75, 2.25)
   ) +
   
   plot_annotation(
@@ -538,14 +449,14 @@ circular_area_chart <- (
 
 
 # ============================================================
-# 15. DISPLAY CHART
+# 10. DISPLAY CHART
 # ============================================================
 
 print(circular_area_chart)
 
 
 # ============================================================
-# 16. SAVE CHART
+# 11. SAVE CHART
 # ============================================================
 
 dir.create(
@@ -556,15 +467,15 @@ dir.create(
 ggsave(
   filename = "figures/dfw_combined_circular_area.png",
   plot = circular_area_chart,
-  width = 18,
-  height = 11,
+  width = 11,
+  height = 8.5,
   dpi = 300,
   bg = "white"
 )
 
 
 # ============================================================
-# 17. EXPORT DATA FOR SHINY
+# 12. EXPORT DATA FOR SHINY
 # ============================================================
 
 write.csv(

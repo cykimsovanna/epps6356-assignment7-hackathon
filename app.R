@@ -2,9 +2,11 @@ library(shiny)
 library(ggplot2)
 library(plotly)
 library(dplyr)
+library(DT)
 
 source("R_codes/chart9_scatter.R")
 source("R_codes/chart18_bubble.R")
+source("R_codes/chart5_circular_area.R")
 
 dashboard_data <- dfw_county_adoption %>%
   left_join(
@@ -19,6 +21,20 @@ dashboard_data <- dfw_county_adoption %>%
     dfw_counties_income,
     by = "County"
   )
+
+# Summary Table
+dashboard_table <- dashboard_data %>%
+  transmute(
+    County,
+    `EV Registrations` = `Electric Vehicles`,
+    `Total Vehicles` = `All Vehicles`,
+    `Adoption Rate` = `Adoption Rate`,
+    `Charging Stations` = charging_stations,
+    `Charging Ports` = charging_ports
+  ) %>%
+  arrange(County)
+
+## View(dashboard_table)
 
 # Dashboard UI
 ui <- fluidPage(
@@ -51,6 +67,12 @@ ui <- fluidPage(
         color: dimgray;
         margin-top: 8px;
       }
+      .row > .col-sm-4 {
+        display: none;
+      }
+      .row > .col-sm-8 {
+        width: 100%;
+      }
     "))
   ),
 
@@ -73,7 +95,7 @@ ui <- fluidPage(
         step = 1000
       )
     ),
-    
+  
   mainPanel(
     tabsetPanel(
         tabPanel(
@@ -95,6 +117,7 @@ ui <- fluidPage(
             class = "chart-caption"
             )
         ),
+        
         tabPanel(
           "Chart 18",
           h3(
@@ -111,24 +134,39 @@ ui <- fluidPage(
             "Sources: U.S. Census Bureau (2020–2024 ACS); DFW Clean Cities EV Registration Report and AFDC (January 1, 2026).",
             class = "chart-caption"
           )
+        ),
+        
+        tabPanel(
+          "Chart 5",
+          div(
+            style = "max-width: 900px; margin: 0 auto;",
+            
+            plotOutput(
+              "chart5_output",
+              width = "100%",
+              height = "670px"
+            )
+          )
         )
         
-        # third chart
-      )
-    )
+      ) # closes tabsetPanel()
+    ) # closes mainPanel()
+  ), # closes sidebarLayout()
+  hr(),
+  h3(
+    "Statistics on EV Registrations & Public Charging Infrastructure Across DFW Counties",
+    class = "chart-title"
+  ),
+  div(
+    style = "max-width: 1200px; margin: 0 auto;",
+    DTOutput("county_table")
   )
-)
+) # closes fluidpage()
 
 # Server
 server <- function(input, output, session) {
   filtered_data <- reactive({
-    req(input$county_filter)
-    dashboard_data %>%
-      filter(
-        County %in% input$county_filter,
-        median_household_income >= input$income_filter[1],
-        median_household_income <= input$income_filter[2]
-      )
+    dashboard_data
   })
   
   # Chart 9
@@ -187,8 +225,39 @@ server <- function(input, output, session) {
       )
   })
   
-  # Chart X
-
+  # Chart 5
+  output$chart5_output <- renderPlot({
+    circular_area_chart
+  }, res = 96)
+  
+  # Table
+  output$county_table <- renderDT({
+    datatable(
+      dashboard_table,
+      rownames = FALSE,
+      options = list(
+        pageLength = 16,
+        lengthChange = FALSE,
+        ordering = TRUE,
+        searching = TRUE,
+        scrollX = TRUE,
+        dom = "ft"
+      )
+    ) %>%
+      formatRound(
+        columns = c(
+          "EV Registrations",
+          "Total Vehicles",
+          "Charging Stations",
+          "Charging Ports"
+        ),
+        digits = 0
+      ) %>%
+      formatPercentage(
+        columns = "Adoption Rate",
+        digits = 1
+      )
+  }, server = FALSE)
 }
 
 # Running App
