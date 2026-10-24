@@ -22,6 +22,38 @@ dashboard_data <- dfw_county_adoption %>%
 
 # Dashboard UI
 ui <- fluidPage(
+  tags$head(
+    tags$link(
+      rel = "stylesheet",
+      href = "https://fonts.googleapis.com/css2?family=Quattrocento:wght@400;700&display=swap"
+    ),
+    tags$style(HTML("
+      body, h1, h2, h3, h4, h5, h6,
+      label, input, button, select,
+      .nav-tabs, .selectize-input, .selectize-dropdown {
+        font-family: 'Quattrocento', serif !important;
+      }  
+      .chart-title {
+        text-align: center;
+        font-size: 28px;
+        font-weight: bold;
+        margin-top: 15px;
+      }
+      .chart-subtitle {
+        text-align: center;
+        font-size: 15px;
+        color: dimgray;
+        margin-bottom: 10px;
+      }
+      .chart-caption {
+        text-align: left;
+        font-size: 13px;
+        color: dimgray;
+        margin-top: 8px;
+      }
+    "))
+  ),
+
     titlePanel("DFW Electric Vehicle Dashboard"),
     sidebarLayout(
         sidebarPanel(
@@ -42,15 +74,43 @@ ui <- fluidPage(
       )
     ),
     
-    mainPanel(
-        tabsetPanel(
+  mainPanel(
+    tabsetPanel(
         tabPanel(
           "Chart 9",
-          plotlyOutput("chart9_output", height = "500px")
+          h3(
+            "EV Adoption Rates vs. EV Charging Availability",
+            class = "chart-title"
+            ),
+          p(
+            "Across the selected DFW counties, as of January 1, 2026",
+            class = "chart-subtitle"
+            ),
+          plotlyOutput(
+            "chart9_output", 
+            height = "500px"
+            ),
+          p(
+            "Sources: DFW Clean Cities EV Registration Report; Alternative Fuels Data Center (AFDC), January 1, 2026.",
+            class = "chart-caption"
+            )
         ),
         tabPanel(
           "Chart 18",
-          plotlyOutput("chart18_output", height = "500px")
+          h3(
+            "EV Adoption Rates vs. Median Household Income",
+            class = "chart-title"
+          ),
+          p(
+            "Bubble size represents the number of public EV charging stations across the 16 DFW counties.",
+            class = "chart-subtitle"
+          ),
+          plotlyOutput("chart18_output", height = "500px"
+          ),
+          p(
+            "Sources: U.S. Census Bureau (2020–2024 ACS); DFW Clean Cities EV Registration Report and AFDC (January 1, 2026).",
+            class = "chart-caption"
+          )
         )
         
         # third chart
@@ -73,19 +133,58 @@ server <- function(input, output, session) {
   
   # Chart 9
   output$chart9_output <- renderPlotly({
-    chart9_filtered <- chart9 %+% filtered_data()
+    chart9_filtered <- chart9 %+% filtered_data() +
+      labs(
+        title = NULL,
+        subtitle = NULL,
+        caption = NULL
+      )
     ggplotly(
       chart9_filtered,
       tooltip = "text"
+    ) %>%
+      plotly::layout(
+        font = list(
+          family = "Quattrocento",
+          size = 13
+        ),
+        xaxis = list(
+          title = list(font = list(size = 15)),
+          tickfont = list(size = 12)
+        ),
+        yaxis = list(
+          title = list(font = list(size = 15)),
+          tickfont = list(size = 12)
+      )
     )
   })
   
   # Chart 18
   output$chart18_output <- renderPlotly({
-    chart18_filtered <- chart18 %+% filtered_data()
+    chart18_filtered <- chart18 %+% filtered_data() +
+      labs(
+        title = NULL,
+        subtitle = NULL,
+        caption = NULL
+      )
     ggplotly(
-      chart18_filtered
-    )
+      chart18_filtered,
+      tooltip = "text"
+    ) %>%
+      plotly::layout(
+        font = list(
+          family = "Quattrocento",
+          size = 13
+        ),
+        xaxis = list(
+          title = list(font = list(size = 15)),
+          tickfont = list(size = 12)
+        ),
+        yaxis = list(
+          title = list(font = list(size = 15)),
+          tickfont = list(size = 12)
+        )
+      )
   })
   
   # Chart X
